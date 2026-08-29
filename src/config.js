@@ -1,8 +1,9 @@
-const path = require('path');
+const path = require("path");
 
-const jsonConfig = path.join(__dirname, 'config.json');
+const jsonConfig = path.join(__dirname, "config.json");
 
 let config;
+
 try {
   config = require(jsonConfig);
 } catch (err) {
@@ -10,10 +11,16 @@ try {
   process.exit(1);
 }
 
+// Railway environment variable ব্যবহার করবে
+if (process.env.TOKEN) {
+  config.token = process.env.TOKEN;
+}
+
 function parseBoolean(value) {
   if (typeof value === "string") {
     value = value.trim().toLowerCase();
   }
+
   switch (value) {
     case true:
     case "true":
