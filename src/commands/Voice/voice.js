@@ -20,12 +20,12 @@ module.exports = {
     usage: 'voice <subcommand> [args]',
     example: 'voice kick @user | voice muteall | voice lock',
     subCommands: [
-        'kick', 'kickall', 'mute', 'unmute', 'muteall', 'unmuteall',
-        'deafen', 'undeafen', 'deafenall', 'undeafenall',
-        'move', 'moveall', 'pull', 'pullall', 'lock', 'unlock',
-        'private', 'unprivate'
-    ],
-
+    'kick', 'kickall', 'mute', 'unmute', 'muteall', 'unmuteall',
+    'deafen', 'undeafen', 'deafenall', 'undeafenall',
+    'move', 'moveall', 'pull', 'pullall', 'lock', 'unlock',
+    'private', 'unprivate',
+    'allow', 'deny', 'list', 'guard', 'unguard'
+],
     async execute(message, args, client, prefix) {
         if (!args.length) return this.sendHelpMenu(message, client, prefix);
         const subcommand = args[0].toLowerCase();
