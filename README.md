@@ -1,9 +1,8 @@
-# Groove — Discord Music & Utility Bot
+# ZEBU — Discord Music & Utility Bot
 
-> **Originally developed by [not.blaxe](https://discord.com/users/689047015665172569)**
-> This project was leaked by a friend of the developer. Following the leak, **AeroX Development** has open-sourced it with the consent of the original developer.
->
-> **AeroX Development:** [discord.gg/aerox](https://discord.gg/aerox)
+> **Originally developed by [](https://discord.com/users/1519443744011714632)**
+
+> ** Development:** [discord.gg/skyline](https://discord.gg/skyl1ne)
 
 ---
 
