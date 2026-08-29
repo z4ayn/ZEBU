@@ -1,14 +1,13 @@
 {
-  "token": "MTU0MzAzNjk4NTQzMjYwNDczMg.GN0Tll.-SmnJG_Uf57KVioOgptYJpXOGy5wM1QxL8vwuE"
-}
+  "token": "MTU0MzAzNjk4NTQzMjYwNDczMg.G9lyeC.I1MFbLuboJkLpXfeR6J9N1gBvN3Drw3_YhfaJ4",
   "prefix": ".",
   "ownerID": [
     "1284490282078834822"
   ],
-  "SpotifyID": "85aab1d51a174aad9eed6d7989f530e6",
-  "SpotifySecret": "b2ad05aa725e434c88776a1be8eab6c",
-  "LastFmKey": "892ec4bdf3b1ea3aa74353988aaa4ee1",
-  "LastFmSecret": "ac670032b9e8f4f96734e8f413b9488c",
+  "SpotifyID": "",
+  "SpotifySecret": "",
+  "LastFmKey": "",
+  "LastFmSecret": "",
   "color": "#00D4FF",
   "logs": "",
   "node_source": "spsearch",
