@@ -22,29 +22,15 @@ module.exports = {
     example: 'voice kick @user | voice muteall | voice lock',
 
     subCommands: [
-        'kick',
-        'kickall',
-        'mute',
-        'unmute',
-        'muteall',
-        'unmuteall',
-        'deafen',
-        'undeafen',
-        'deafenall',
-        'undeafenall',
-        'move',
-        'moveall',
-        'pull',
-        'pullall',
-        'lock',
-        'unlock',
-        'private',
-        'unprivate',
-        'allow',
-        'unallow',
-        'list',
-        'guard',
-        'unguard'
+        'kick', 'kickall',
+        'mute', 'unmute', 'muteall', 'unmuteall',
+        'deafen', 'undeafen', 'deafenall', 'undeafenall',
+        'move', 'moveall',
+        'pull', 'pullall',
+        'lock', 'unlock',
+        'private', 'unprivate',
+        'allow', 'unallow', 'list',
+        'guard', 'unguard'
     ],
 
     async execute(message, args, client, prefix) {
@@ -64,8 +50,8 @@ module.exports = {
     },
 
     async handleVoice(context, subcommand, options, client, prefix) {
-        const guild = context.guild;
 
+        const guild = context.guild;
         if (!guild) return;
 
         const member = context.member;
@@ -78,11 +64,11 @@ module.exports = {
         VC GUARD MEMORY
         ==========================================
 
-        client.vcGuardChannels
-            Set<ChannelID>
+        vcGuardChannels
+        Set<ChannelID>
 
-        client.vcGuardAllowed
-            Map<ChannelID, Set<UserID>>
+        vcGuardAllowed
+        Map<ChannelID, Set<UserID>>
 
         ==========================================
         */
@@ -97,7 +83,8 @@ module.exports = {
 
         const voiceChannel = member.voice?.channel;
 
-        const isOwner = client.owners?.includes(user.id);
+        const isOwner =
+            client.owners?.includes(user.id);
 
         /*
         ==========================================
@@ -106,66 +93,110 @@ module.exports = {
         */
 
         const getTarget = async (arg) => {
+
             if (!arg) return null;
 
-            const id = arg.replace(/[<@!>]/g, '');
+            const id =
+                arg.replace(/[<@!>]/g, '');
 
-            let target = await guild.members.fetch(id).catch(() => null);
+            let target =
+                await guild.members
+                    .fetch(id)
+                    .catch(() => null);
 
             if (!target) {
-                const search = arg.toLowerCase();
 
-                target = guild.members.cache.find(m =>
-                    m.user.username.toLowerCase() === search ||
-                    m.displayName.toLowerCase() === search ||
-                    m.user.tag?.toLowerCase() === search
-                );
+                const search =
+                    arg.toLowerCase();
+
+                target =
+                    guild.members.cache.find(m =>
+                        m.user.username
+                            .toLowerCase() === search ||
+
+                        m.displayName
+                            .toLowerCase() === search ||
+
+                        m.user.tag?.toLowerCase() === search
+                    );
             }
 
             return target || null;
         };
 
         const getChannel = async (arg) => {
+
             if (!arg) return null;
 
-            const id = arg.replace(/[<#>]/g, '');
+            const id =
+                arg.replace(/[<#>]/g, '');
 
-            let channel = guild.channels.cache.get(id);
+            let channel =
+                guild.channels.cache.get(id);
 
             if (!channel) {
-                const search = arg.toLowerCase();
 
-                channel = guild.channels.cache.find(c =>
-                    c.name.toLowerCase() === search &&
-                    (
-                        c.type === ChannelType.GuildVoice ||
-                        c.type === ChannelType.GuildStageVoice
-                    )
-                );
+                const search =
+                    arg.toLowerCase();
+
+                channel =
+                    guild.channels.cache.find(c =>
+                        c.name.toLowerCase() === search &&
+                        (
+                            c.type === ChannelType.GuildVoice ||
+                            c.type === ChannelType.GuildStageVoice
+                        )
+                    );
             }
 
             return channel || null;
         };
 
-        const success = (msg) => {
-            const display = new TextDisplayBuilder()
-                .setContent(`${emoji.check} ${msg}`);
+        /*
+        ==========================================
+        SUCCESS
+        ==========================================
+        */
 
-            const container = new ContainerBuilder()
-                .addTextDisplayComponents(display);
+        const success = (msg) => {
+
+            const display =
+                new TextDisplayBuilder()
+                    .setContent(
+                        `${emoji.check} ${msg}`
+                    );
+
+            const container =
+                new ContainerBuilder()
+                    .addTextDisplayComponents(
+                        display
+                    );
 
             return context.reply({
                 components: [container],
                 flags: MessageFlags.IsComponentsV2
             });
         };
+
+        /*
+        ==========================================
+        ERROR
+        ==========================================
+        */
 
         const error = (msg) => {
-            const display = new TextDisplayBuilder()
-                .setContent(`${emoji.warn} ${msg}`);
 
-            const container = new ContainerBuilder()
-                .addTextDisplayComponents(display);
+            const display =
+                new TextDisplayBuilder()
+                    .setContent(
+                        `${emoji.warn} ${msg}`
+                    );
+
+            const container =
+                new ContainerBuilder()
+                    .addTextDisplayComponents(
+                        display
+                    );
 
             return context.reply({
                 components: [container],
@@ -173,12 +204,27 @@ module.exports = {
             });
         };
 
-        const usage = (cmd, use, desc, aliases = 'none') => {
-            const container = new ContainerBuilder();
+        /*
+        ==========================================
+        USAGE
+        ==========================================
+        */
+
+        const usage = (
+            cmd,
+            use,
+            desc,
+            aliases = 'none'
+        ) => {
+
+            const container =
+                new ContainerBuilder();
 
             container.addTextDisplayComponents(
                 new TextDisplayBuilder()
-                    .setContent('```<> : Required | [] : Optional```')
+                    .setContent(
+                        '```<> : Required | [] : Optional```'
+                    )
             );
 
             container.addSeparatorComponents(
@@ -198,7 +244,8 @@ module.exports = {
             }
 
             container.addTextDisplayComponents(
-                new TextDisplayBuilder().setContent(content)
+                new TextDisplayBuilder()
+                    .setContent(content)
             );
 
             container.addSeparatorComponents(
@@ -225,6 +272,7 @@ module.exports = {
         */
 
         const subAliases = {
+
             k: 'kick',
             ka: 'kickall',
             kall: 'kickall',
@@ -263,7 +311,8 @@ module.exports = {
         };
 
         const realSub =
-            subAliases[subcommand] || subcommand;
+            subAliases[subcommand] ||
+            subcommand;
 
         /*
         ==========================================
@@ -272,41 +321,82 @@ module.exports = {
         */
 
         const botPerms = {
-            kick: PermissionFlagsBits.MoveMembers,
-            kickall: PermissionFlagsBits.MoveMembers,
 
-            mute: PermissionFlagsBits.MuteMembers,
-            unmute: PermissionFlagsBits.MuteMembers,
-            muteall: PermissionFlagsBits.MuteMembers,
-            unmuteall: PermissionFlagsBits.MuteMembers,
+            kick:
+                PermissionFlagsBits.MoveMembers,
 
-            deafen: PermissionFlagsBits.DeafenMembers,
-            undeafen: PermissionFlagsBits.DeafenMembers,
-            deafenall: PermissionFlagsBits.DeafenMembers,
-            undeafenall: PermissionFlagsBits.DeafenMembers,
+            kickall:
+                PermissionFlagsBits.MoveMembers,
 
-            move: PermissionFlagsBits.MoveMembers,
-            moveall: PermissionFlagsBits.MoveMembers,
+            mute:
+                PermissionFlagsBits.MuteMembers,
 
-            pull: PermissionFlagsBits.MoveMembers,
-            pullall: PermissionFlagsBits.MoveMembers,
+            unmute:
+                PermissionFlagsBits.MuteMembers,
 
-            lock: PermissionFlagsBits.ManageChannels,
-            unlock: PermissionFlagsBits.ManageChannels,
+            muteall:
+                PermissionFlagsBits.MuteMembers,
 
-            private: PermissionFlagsBits.ManageChannels,
-            unprivate: PermissionFlagsBits.ManageChannels,
+            unmuteall:
+                PermissionFlagsBits.MuteMembers,
 
-            guard: PermissionFlagsBits.MoveMembers,
-            unguard: PermissionFlagsBits.MoveMembers,
-            allow: PermissionFlagsBits.MoveMembers,
-            unallow: PermissionFlagsBits.MoveMembers,
-            list: PermissionFlagsBits.MoveMembers
+            deafen:
+                PermissionFlagsBits.DeafenMembers,
+
+            undeafen:
+                PermissionFlagsBits.DeafenMembers,
+
+            deafenall:
+                PermissionFlagsBits.DeafenMembers,
+
+            undeafenall:
+                PermissionFlagsBits.DeafenMembers,
+
+            move:
+                PermissionFlagsBits.MoveMembers,
+
+            moveall:
+                PermissionFlagsBits.MoveMembers,
+
+            pull:
+                PermissionFlagsBits.MoveMembers,
+
+            pullall:
+                PermissionFlagsBits.MoveMembers,
+
+            lock:
+                PermissionFlagsBits.ManageChannels,
+
+            unlock:
+                PermissionFlagsBits.ManageChannels,
+
+            private:
+                PermissionFlagsBits.ManageChannels,
+
+            unprivate:
+                PermissionFlagsBits.ManageChannels,
+
+            guard:
+                PermissionFlagsBits.MoveMembers,
+
+            unguard:
+                PermissionFlagsBits.MoveMembers,
+
+            allow:
+                PermissionFlagsBits.MoveMembers,
+
+            unallow:
+                PermissionFlagsBits.MoveMembers,
+
+            list:
+                PermissionFlagsBits.MoveMembers
         };
 
-        const requiredPerm = botPerms[realSub];
+        const requiredPerm =
+            botPerms[realSub];
 
-        const me = guild.members.me;
+        const me =
+            guild.members.me;
 
         if (
             requiredPerm &&
@@ -318,11 +408,12 @@ module.exports = {
         }
 
         try {
+
             switch (realSub) {
 
                 /*
                 ==========================================
-                VC GUARD
+                GUARD
                 ==========================================
                 */
 
@@ -346,7 +437,7 @@ module.exports = {
                     }
 
                     /*
-                    Enable guard
+                    Enable Guard
                     */
 
                     client.vcGuardChannels.add(
@@ -368,17 +459,17 @@ module.exports = {
                         );
                     }
 
-                    /*
-                    IMPORTANT:
-                    Anyone not explicitly allowed
-                    will be kicked by voiceStateUpdate.
-                    */
-
                     return success(
-                        `VC Guard enabled for ${voiceChannel}.\n` +
-                        `Only allowed users can join this VC.`
+                        `🛡️ VC Guard enabled for ${voiceChannel}.\n` +
+                        `Only explicitly allowed users can join this VC.`
                     );
                 }
+
+                /*
+                ==========================================
+                UNGUARD
+                ==========================================
+                */
 
                 case 'unguard': {
 
@@ -408,9 +499,15 @@ module.exports = {
                     );
 
                     return success(
-                        `VC Guard disabled for ${voiceChannel}.`
+                        `🛡️ VC Guard disabled for ${voiceChannel}.`
                     );
                 }
+
+                /*
+                ==========================================
+                ALLOW
+                ==========================================
+                */
 
                 case 'allow': {
 
@@ -442,6 +539,7 @@ module.exports = {
                     }
 
                     if (!options[0]) {
+
                         return usage(
                             'allow',
                             '<user>',
@@ -449,9 +547,10 @@ module.exports = {
                         );
                     }
 
-                    const target = await getTarget(
-                        options[0]
-                    );
+                    const target =
+                        await getTarget(
+                            options[0]
+                        );
 
                     if (!target) {
                         return error(
@@ -475,12 +574,20 @@ module.exports = {
                             voiceChannel.id
                         );
 
-                    allowed.add(target.id);
+                    allowed.add(
+                        target.id
+                    );
 
                     return success(
                         `${target} is now allowed to join ${voiceChannel}.`
                     );
                 }
+
+                /*
+                ==========================================
+                UNALLOW
+                ==========================================
+                */
 
                 case 'unallow': {
 
@@ -502,16 +609,18 @@ module.exports = {
                     }
 
                     if (!options[0]) {
+
                         return usage(
                             'unallow',
                             '<user>',
-                            'Removes a user from the VC Guard allow list.'
+                            'Removes a user from the VC allow list.'
                         );
                     }
 
-                    const target = await getTarget(
-                        options[0]
-                    );
+                    const target =
+                        await getTarget(
+                            options[0]
+                        );
 
                     if (!target) {
                         return error(
@@ -533,17 +642,20 @@ module.exports = {
                         );
                     }
 
-                    allowed.delete(target.id);
+                    allowed.delete(
+                        target.id
+                    );
 
                     /*
-                    If the user is currently inside
-                    the guarded VC, remove them immediately.
+                    If currently inside guarded VC,
+                    disconnect immediately.
                     */
 
                     if (
                         target.voice.channelId ===
                         voiceChannel.id
                     ) {
+
                         await target.voice
                             .disconnect(
                                 'VC Guard: User removed from allow list'
@@ -555,6 +667,12 @@ module.exports = {
                         `${target} has been removed from the allow list.`
                     );
                 }
+
+                /*
+                ==========================================
+                LIST
+                ==========================================
+                */
 
                 case 'list': {
 
@@ -599,9 +717,13 @@ module.exports = {
                         );
                     }
 
-                    const users = [...allowed]
-                        .map(id => `<@${id}>`)
-                        .join(', ');
+                    const users =
+                        [...allowed]
+                            .map(
+                                id =>
+                                    `<@${id}>`
+                            )
+                            .join(', ');
 
                     return success(
                         `Allowed users in ${voiceChannel}: ${users}`
@@ -628,6 +750,7 @@ module.exports = {
                     }
 
                     if (!options[0]) {
+
                         return usage(
                             'kick',
                             '<user>',
@@ -636,9 +759,10 @@ module.exports = {
                         );
                     }
 
-                    const target = await getTarget(
-                        options[0]
-                    );
+                    const target =
+                        await getTarget(
+                            options[0]
+                        );
 
                     if (
                         !target ||
@@ -652,7 +776,8 @@ module.exports = {
                     const targetChannel =
                         target.voice.channel;
 
-                    await target.voice.disconnect();
+                    await target.voice
+                        .disconnect();
 
                     return success(
                         `Kicked ${target} from ${targetChannel}.`
@@ -689,7 +814,10 @@ module.exports = {
                             m => !m.user.bot
                         );
 
-                    for (const [, m] of members) {
+                    for (
+                        const [, m]
+                        of members
+                    ) {
                         await m.voice
                             .disconnect()
                             .catch(() => {});
@@ -720,6 +848,7 @@ module.exports = {
                     }
 
                     if (!options[0]) {
+
                         return usage(
                             'mute',
                             '<user>',
@@ -728,9 +857,10 @@ module.exports = {
                         );
                     }
 
-                    const target = await getTarget(
-                        options[0]
-                    );
+                    const target =
+                        await getTarget(
+                            options[0]
+                        );
 
                     if (
                         !target ||
@@ -747,12 +877,19 @@ module.exports = {
                         );
                     }
 
-                    await target.voice.setMute(true);
+                    await target.voice
+                        .setMute(true);
 
                     return success(
                         `Muted ${target}.`
                     );
                 }
+
+                /*
+                ==========================================
+                UNMUTE
+                ==========================================
+                */
 
                 case 'unmute': {
 
@@ -768,6 +905,7 @@ module.exports = {
                     }
 
                     if (!options[0]) {
+
                         return usage(
                             'unmute',
                             '<user>',
@@ -776,9 +914,10 @@ module.exports = {
                         );
                     }
 
-                    const target = await getTarget(
-                        options[0]
-                    );
+                    const target =
+                        await getTarget(
+                            options[0]
+                        );
 
                     if (
                         !target ||
@@ -795,7 +934,8 @@ module.exports = {
                         );
                     }
 
-                    await target.voice.setMute(false);
+                    await target.voice
+                        .setMute(false);
 
                     return success(
                         `Unmuted ${target}.`
@@ -834,13 +974,16 @@ module.exports = {
                                 !m.voice.mute
                         );
 
-                    if (members.size === 0) {
+                    if (!members.size) {
                         return error(
                             'Everyone is already muted.'
                         );
                     }
 
-                    for (const [, m] of members) {
+                    for (
+                        const [, m]
+                        of members
+                    ) {
                         await m.voice
                             .setMute(true)
                             .catch(() => {});
@@ -883,13 +1026,16 @@ module.exports = {
                                 m.voice.mute
                         );
 
-                    if (members.size === 0) {
+                    if (!members.size) {
                         return error(
                             'No one is muted.'
                         );
                     }
 
-                    for (const [, m] of members) {
+                    for (
+                        const [, m]
+                        of members
+                    ) {
                         await m.voice
                             .setMute(false)
                             .catch(() => {});
@@ -920,6 +1066,7 @@ module.exports = {
                     }
 
                     if (!options[0]) {
+
                         return usage(
                             'deafen',
                             '<user>',
@@ -928,9 +1075,10 @@ module.exports = {
                         );
                     }
 
-                    const target = await getTarget(
-                        options[0]
-                    );
+                    const target =
+                        await getTarget(
+                            options[0]
+                        );
 
                     if (
                         !target ||
@@ -947,12 +1095,19 @@ module.exports = {
                         );
                     }
 
-                    await target.voice.setDeaf(true);
+                    await target.voice
+                        .setDeaf(true);
 
                     return success(
                         `Deafened ${target}.`
                     );
                 }
+
+                /*
+                ==========================================
+                UNDEAFEN
+                ==========================================
+                */
 
                 case 'undeafen': {
 
@@ -968,6 +1123,7 @@ module.exports = {
                     }
 
                     if (!options[0]) {
+
                         return usage(
                             'undeafen',
                             '<user>',
@@ -976,9 +1132,10 @@ module.exports = {
                         );
                     }
 
-                    const target = await getTarget(
-                        options[0]
-                    );
+                    const target =
+                        await getTarget(
+                            options[0]
+                        );
 
                     if (
                         !target ||
@@ -995,7 +1152,8 @@ module.exports = {
                         );
                     }
 
-                    await target.voice.setDeaf(false);
+                    await target.voice
+                        .setDeaf(false);
 
                     return success(
                         `Undeafened ${target}.`
@@ -1034,13 +1192,16 @@ module.exports = {
                                 !m.voice.deaf
                         );
 
-                    if (members.size === 0) {
+                    if (!members.size) {
                         return error(
                             'Everyone is already deafened.'
                         );
                     }
 
-                    for (const [, m] of members) {
+                    for (
+                        const [, m]
+                        of members
+                    ) {
                         await m.voice
                             .setDeaf(true)
                             .catch(() => {});
@@ -1050,6 +1211,12 @@ module.exports = {
                         `Deafened everyone in ${voiceChannel}.`
                     );
                 }
+
+                /*
+                ==========================================
+                UNDEAFEN ALL
+                ==========================================
+                */
 
                 case 'undeafenall': {
 
@@ -1077,13 +1244,16 @@ module.exports = {
                                 m.voice.deaf
                         );
 
-                    if (members.size === 0) {
+                    if (!members.size) {
                         return error(
                             'No one is deafened.'
                         );
                     }
 
-                    for (const [, m] of members) {
+                    for (
+                        const [, m]
+                        of members
+                    ) {
                         await m.voice
                             .setDeaf(false)
                             .catch(() => {});
@@ -1114,15 +1284,17 @@ module.exports = {
                     }
 
                     if (!options[0]) {
+
                         return usage(
                             'move',
                             '<user> <channel>',
-                            'Moves a specific user to another voice channel.',
+                            'Moves a user to another voice channel.',
                             'mv'
                         );
                     }
 
                     if (!options[1]) {
+
                         return usage(
                             'move',
                             '<user> <channel>',
@@ -1132,10 +1304,14 @@ module.exports = {
                     }
 
                     const target =
-                        await getTarget(options[0]);
+                        await getTarget(
+                            options[0]
+                        );
 
                     const dest =
-                        await getChannel(options[1]);
+                        await getChannel(
+                            options[1]
+                        );
 
                     if (
                         !target ||
@@ -1150,9 +1326,9 @@ module.exports = {
                         !dest ||
                         (
                             dest.type !==
-                            ChannelType.GuildVoice &&
+                                ChannelType.GuildVoice &&
                             dest.type !==
-                            ChannelType.GuildStageVoice
+                                ChannelType.GuildStageVoice
                         )
                     ) {
                         return error(
@@ -1160,7 +1336,8 @@ module.exports = {
                         );
                     }
 
-                    await target.voice.setChannel(dest);
+                    await target.voice
+                        .setChannel(dest);
 
                     return success(
                         `Moved ${target} to ${dest}.`
@@ -1193,24 +1370,27 @@ module.exports = {
                     }
 
                     if (!options[0]) {
+
                         return usage(
                             'moveall',
                             '<channel>',
-                            'Moves users from the current channel to another.',
+                            'Moves users from current VC to another.',
                             'mva, mvall'
                         );
                     }
 
                     const dest =
-                        await getChannel(options[0]);
+                        await getChannel(
+                            options[0]
+                        );
 
                     if (
                         !dest ||
                         (
                             dest.type !==
-                            ChannelType.GuildVoice &&
+                                ChannelType.GuildVoice &&
                             dest.type !==
-                            ChannelType.GuildStageVoice
+                                ChannelType.GuildStageVoice
                         )
                     ) {
                         return error(
@@ -1223,7 +1403,10 @@ module.exports = {
                             m => !m.user.bot
                         );
 
-                    for (const [, m] of members) {
+                    for (
+                        const [, m]
+                        of members
+                    ) {
                         await m.voice
                             .setChannel(dest)
                             .catch(() => {});
@@ -1260,16 +1443,19 @@ module.exports = {
                     }
 
                     if (!options[0]) {
+
                         return usage(
                             'pull',
                             '<user>',
-                            'Pulls a user into your current voice channel.',
+                            'Pulls a user into your current VC.',
                             'p'
                         );
                     }
 
                     const target =
-                        await getTarget(options[0]);
+                        await getTarget(
+                            options[0]
+                        );
 
                     if (
                         !target ||
@@ -1280,9 +1466,10 @@ module.exports = {
                         );
                     }
 
-                    await target.voice.setChannel(
-                        voiceChannel
-                    );
+                    await target.voice
+                        .setChannel(
+                            voiceChannel
+                        );
 
                     return success(
                         `Pulled ${target} into ${voiceChannel}.`
@@ -1315,24 +1502,27 @@ module.exports = {
                     }
 
                     if (!options[0]) {
+
                         return usage(
                             'pullall',
                             '<channel>',
-                            'Pulls all users from a specified voice channel into yours.',
+                            'Pulls all users from another VC into yours.',
                             'pa, pall'
                         );
                     }
 
                     const source =
-                        await getChannel(options[0]);
+                        await getChannel(
+                            options[0]
+                        );
 
                     if (
                         !source ||
                         (
                             source.type !==
-                            ChannelType.GuildVoice &&
+                                ChannelType.GuildVoice &&
                             source.type !==
-                            ChannelType.GuildStageVoice
+                                ChannelType.GuildStageVoice
                         )
                     ) {
                         return error(
@@ -1345,9 +1535,14 @@ module.exports = {
                             m => !m.user.bot
                         );
 
-                    for (const [, m] of members) {
+                    for (
+                        const [, m]
+                        of members
+                    ) {
                         await m.voice
-                            .setChannel(voiceChannel)
+                            .setChannel(
+                                voiceChannel
+                            )
                             .catch(() => {});
                     }
 
@@ -1381,17 +1576,25 @@ module.exports = {
                         );
                     }
 
-                    await voiceChannel.permissionOverwrites.edit(
-                        guild.roles.everyone,
-                        {
-                            Connect: false
-                        }
-                    );
+                    await voiceChannel
+                        .permissionOverwrites
+                        .edit(
+                            guild.roles.everyone,
+                            {
+                                Connect: false
+                            }
+                        );
 
                     return success(
                         `Locked ${voiceChannel}.`
                     );
                 }
+
+                /*
+                ==========================================
+                UNLOCK
+                ==========================================
+                */
 
                 case 'unlock': {
 
@@ -1412,12 +1615,14 @@ module.exports = {
                         );
                     }
 
-                    await voiceChannel.permissionOverwrites.edit(
-                        guild.roles.everyone,
-                        {
-                            Connect: null
-                        }
-                    );
+                    await voiceChannel
+                        .permissionOverwrites
+                        .edit(
+                            guild.roles.everyone,
+                            {
+                                Connect: null
+                            }
+                        );
 
                     return success(
                         `Unlocked ${voiceChannel}.`
@@ -1449,17 +1654,25 @@ module.exports = {
                         );
                     }
 
-                    await voiceChannel.permissionOverwrites.edit(
-                        guild.roles.everyone,
-                        {
-                            ViewChannel: false
-                        }
-                    );
+                    await voiceChannel
+                        .permissionOverwrites
+                        .edit(
+                            guild.roles.everyone,
+                            {
+                                ViewChannel: false
+                            }
+                        );
 
                     return success(
                         `Made ${voiceChannel} private.`
                     );
                 }
+
+                /*
+                ==========================================
+                UNPRIVATE
+                ==========================================
+                */
 
                 case 'unprivate': {
 
@@ -1480,12 +1693,14 @@ module.exports = {
                         );
                     }
 
-                    await voiceChannel.permissionOverwrites.edit(
-                        guild.roles.everyone,
-                        {
-                            ViewChannel: null
-                        }
-                    );
+                    await voiceChannel
+                        .permissionOverwrites
+                        .edit(
+                            guild.roles.everyone,
+                            {
+                                ViewChannel: null
+                            }
+                        );
 
                     return success(
                         `Made ${voiceChannel} public.`
@@ -1493,6 +1708,7 @@ module.exports = {
                 }
 
                 default:
+
                     return this.sendHelpMenu(
                         context,
                         client,
@@ -1501,6 +1717,7 @@ module.exports = {
             }
 
         } catch (err) {
+
             console.error(
                 '[VOICE COMMAND ERROR]',
                 err
@@ -1518,17 +1735,22 @@ module.exports = {
     ==========================================
     */
 
-    async sendHelpMenu(message, client, prefix) {
+    async sendHelpMenu(
+        message,
+        client,
+        prefix
+    ) {
 
         const usedPrefix =
             prefix || client.prefix;
 
         const pages = [
+
             {
                 items: [
                     {
                         cmd: 'voice guard',
-                        desc: 'Enables VC Guard. Only allowed users can join.'
+                        desc: 'Enables VC Guard. Only explicitly allowed users can join.'
                     },
                     {
                         cmd: 'voice allow',
@@ -1548,6 +1770,7 @@ module.exports = {
                     }
                 ]
             },
+
             {
                 items: [
                     {
@@ -1576,6 +1799,7 @@ module.exports = {
                     }
                 ]
             },
+
             {
                 items: [
                     {
@@ -1603,23 +1827,57 @@ module.exports = {
                         desc: 'Undeafens a user.'
                     }
                 ]
+            },
+
+            {
+                items: [
+                    {
+                        cmd: 'voice deafenall',
+                        desc: 'Deafens everyone in the current VC.'
+                    },
+                    {
+                        cmd: 'voice undeafenall',
+                        desc: 'Undeafens everyone in the current VC.'
+                    },
+                    {
+                        cmd: 'voice pull',
+                        desc: 'Pulls a user into your current VC.'
+                    },
+                    {
+                        cmd: 'voice pullall',
+                        desc: 'Pulls all users from another VC.'
+                    },
+                    {
+                        cmd: 'voice private',
+                        desc: 'Makes the current VC private.'
+                    },
+                    {
+                        cmd: 'voice unprivate',
+                        desc: 'Makes the current VC public.'
+                    }
+                ]
             }
         ];
 
         let currentPage = 0;
 
         const author =
-            message.author || message.user;
+            message.author ||
+            message.user;
 
         const totalCommands =
             pages.reduce(
-                (acc, p) => acc + p.items.length,
+                (acc, p) =>
+                    acc + p.items.length,
                 0
             );
 
-        const createContainer = (pageIdx) => {
+        const createContainer = (
+            pageIdx
+        ) => {
 
-            const page = pages[pageIdx];
+            const page =
+                pages[pageIdx];
 
             const container =
                 new ContainerBuilder();
@@ -1699,13 +1957,19 @@ module.exports = {
 
         const msg =
             await message.reply({
+
                 content: '',
+
                 components: [
-                    createContainer(currentPage),
+                    createContainer(
+                        currentPage
+                    ),
                     getButtons()
                 ],
+
                 flags:
                     MessageFlags.IsComponentsV2,
+
                 allowedMentions: {
                     parse: []
                 }
@@ -1713,9 +1977,14 @@ module.exports = {
 
         const collector =
             msg.createMessageComponentCollector({
-                filter: i =>
-                    i.user.id === author.id,
+
+                filter:
+                    i =>
+                        i.user.id ===
+                        author.id,
+
                 time: 60000,
+
                 componentType:
                     ComponentType.Button
             });
@@ -1728,6 +1997,7 @@ module.exports = {
                     interaction.customId ===
                     'close'
                 ) {
+
                     return interaction.message
                         .delete()
                         .catch(() => {});
@@ -1744,6 +2014,7 @@ module.exports = {
                     interaction.customId ===
                     'prev'
                 ) {
+
                     currentPage =
                         (
                             currentPage -
@@ -1757,22 +2028,27 @@ module.exports = {
                     interaction.customId ===
                     'next'
                 ) {
+
                     currentPage =
                         (
-                            currentPage + 1
+                            currentPage +
+                            1
                         ) %
                         pages.length;
                 }
 
                 await interaction.update({
+
                     components: [
                         createContainer(
                             currentPage
                         ),
                         getButtons()
                     ],
+
                     flags:
                         MessageFlags.IsComponentsV2,
+
                     allowedMentions: {
                         parse: []
                     }
@@ -1785,16 +2061,20 @@ module.exports = {
             () => {
 
                 msg.edit({
+
                     components: [
                         createContainer(
                             currentPage
                         )
                     ],
+
                     flags:
                         MessageFlags.IsComponentsV2,
+
                     allowedMentions: {
                         parse: []
                     }
+
                 }).catch(() => {});
             }
         );
