@@ -497,133 +497,129 @@ module.exports = {
                             guardedSuffix
                         )
                     ) {
-                        await voiceChannel
-                            .setName(
-                                `${voiceChannel.name}${guardedSuffix}`
-                            )
-                            .catch(err => {
-                                console.error(
-                                    '[VC Guard] Failed to change VC name:',
-                                    err.message
-                                );
-                            });
-                    }
+case 'guard': {
 
-                    return success(
-                        `VC Guard enabled for ${voiceChannel}.\n` +
-                        `Only allowed users can join this VC.`
-                    );
-                }
+    if (
+        !member.permissions.has(
+            PermissionFlagsBits.MoveMembers
+        ) &&
+        !isOwner
+    ) {
+        return error(
+            'You need `Move Members` permission.'
+        );
+    }
 
-                /*
-                ==========================================
-                UNGUARD
-                ==========================================
-                */
+    if (!voiceChannel) {
+        return error(
+            'You must be in a voice channel.'
+        );
+    }
 
-                case 'unguard': {
+    /*
+    ==========================================
+    ENABLE VC GUARD
+    ==========================================
+    */
 
-                    if (
-                        !member.permissions.has(
-                            PermissionFlagsBits.MoveMembers
-                        ) &&
-                        !isOwner
-                    ) {
-                        return error(
-                            'You need `Move Members` permission.'
-                        );
-                    }
+    client.vcGuardChannels.add(
+        voiceChannel.id
+    );
 
-                    if (!voiceChannel) {
-                        return error(
-                            'You must be in a voice channel.'
-                        );
-                    }
+    if (
+        !client.vcGuardAllowed.has(
+            voiceChannel.id
+        )
+    ) {
+        client.vcGuardAllowed.set(
+            voiceChannel.id,
+            new Set()
+        );
+    }
 
-                    if (
-                        !client.vcGuardChannels.has(
-                            voiceChannel.id
-                        )
-                    ) {
-                        return error(
-                            `${voiceChannel} is not guarded.`
-                        );
-                    }
+    /*
+    ==========================================
+    CHANGE VC NAME
+    Example:
+    ZAYAN'S VC
+    ↓
+    🛡️ - ZAYAN'S VC
+    ==========================================
+    */
 
-                    /*
-                    Disable guard
-                    */
+    if (
+        !voiceChannel.name.startsWith('🛡️ - ')
+    ) {
+        await voiceChannel.setName(
+            `🛡️ - ${voiceChannel.name}`
+        ).catch(() => {});
+    }
 
-                    client.vcGuardChannels.delete(
-                        voiceChannel.id
-                    );
+    return success(
+        `VC Guard enabled for ${voiceChannel}.\n` +
+        `Only allowed users can join this VC.`
+    );
+}
 
-                    /*
-                    Remove allow list
-                    */
 
-                    client.vcGuardAllowed.delete(
-                        voiceChannel.id
-                    );
+case 'unguard': {
 
-                    /*
-                    ==========================================
-                    RESTORE ORIGINAL VC NAME
-                    ==========================================
-                    */
+    if (
+        !member.permissions.has(
+            PermissionFlagsBits.MoveMembers
+        ) &&
+        !isOwner
+    ) {
+        return error(
+            'You need `Move Members` permission.'
+        );
+    }
 
-                    const originalName =
-                        client.vcGuardOriginalNames.get(
-                            voiceChannel.id
-                        );
+    if (!voiceChannel) {
+        return error(
+            'You must be in a voice channel.'
+        );
+    }
 
-                    if (originalName) {
+    /*
+    ==========================================
+    DISABLE VC GUARD
+    ==========================================
+    */
 
-                        await voiceChannel
-                            .setName(originalName)
-                            .catch(err => {
-                                console.error(
-                                    '[VC Guard] Failed to restore VC name:',
-                                    err.message
-                                );
-                            });
+    client.vcGuardChannels.delete(
+        voiceChannel.id
+    );
 
-                        client.vcGuardOriginalNames.delete(
-                            voiceChannel.id
-                        );
+    client.vcGuardAllowed.delete(
+        voiceChannel.id
+    );
 
-                    } else {
+    /*
+    ==========================================
+    REMOVE GUARD PREFIX
+    Example:
+    🛡️ - ZAYAN'S VC
+    ↓
+    ZAYAN'S VC
+    ==========================================
+    */
 
-                        /*
-                        Fallback if original name
-                        was not stored.
-                        */
+    if (
+        voiceChannel.name.startsWith('🛡️ - ')
+    ) {
+        await voiceChannel.setName(
+            voiceChannel.name.replace(
+                /^🛡️ - /,
+                ''
+            )
+        ).catch(() => {});
+    }
 
-                        const suffix =
-                            ' || 🛡️ GUARDED';
-
-                        if (
-                            voiceChannel.name.endsWith(
-                                suffix
-                            )
-                        ) {
-
-                            await voiceChannel
-                                .setName(
-                                    voiceChannel.name.slice(
-                                        0,
-                                        -suffix.length
-                                    )
-                                )
-                                .catch(() => {});
-                        }
-                    }
-
-                    return success(
-                        `VC Guard disabled for ${voiceChannel}.`
-                    );
-                }
-
+    return success(
+        `VC Guard disabled for ${voiceChannel}.`
+    );
+}
                 /*
                 ==========================================
                 ALLOW
