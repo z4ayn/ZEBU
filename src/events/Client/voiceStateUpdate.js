@@ -2,14 +2,16 @@ const { PermissionsBitField } = require("discord.js");
 
 module.exports = {
     name: "voiceStateUpdate",
-    once: false,
 
-    async run(client, oldState, newState) {
+    async execute(oldState, newState, client) {
         try {
+            if (!client.db?.vcguard) return;
+
             const guild = newState.guild || oldState.guild;
             if (!guild) return;
 
-            const guard = client.db?.vcguard?.get(guild.id);
+            const guard = client.db.vcguard.get(guild.id);
+
             if (!guard || !guard.enabled) return;
 
             const member = newState.member;
@@ -19,27 +21,42 @@ module.exports = {
             if (
                 member.id === guild.ownerId ||
                 client.owners?.includes(member.id)
-            ) return;
+            ) {
+                return;
+            }
 
             // Allowed users
-            if (guard.allowedUsers?.includes(member.id)) return;
+            if (guard.allowedUsers?.includes(member.id)) {
+                return;
+            }
 
-            // Bot needs Move Members permission
+            // Only when user joins/moves to a VC
+            if (!newState.channelId) return;
+
+            // Bot needs Move Members
             const me = guild.members.me;
-            if (!me?.permissions.has(PermissionsBitField.Flags.MoveMembers)) {
-                console.log("[VC Guard] Missing Move Members permission.");
+
+            if (
+                !me?.permissions.has(
+                    PermissionsBitField.Flags.MoveMembers
+                )
+            ) {
+                console.log(
+                    "[VC Guard] Missing Move Members permission."
+                );
                 return;
             }
 
             // Disconnect unauthorized user
-            if (newState.channel) {
-                await member.voice
-                    .disconnect("VC Guard: user not allowed")
-                    .catch(() => {});
-            }
+            await member.voice
+                .disconnect("VC Guard: user not allowed")
+                .catch(() => {});
 
-        } catch (err) {
-            console.error("[VC Guard Error]", err);
+        } catch (error) {
+            console.error(
+                "[VC GUARD ERROR]",
+                error
+            );
         }
     }
 };
