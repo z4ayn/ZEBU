@@ -22,19 +22,39 @@ module.exports = {
     example: 'voice kick @user | voice muteall | voice lock',
 
     subCommands: [
-        'kick', 'kickall', 'mute', 'unmute', 'muteall', 'unmuteall',
-        'deafen', 'undeafen', 'deafenall', 'undeafenall',
-        'move', 'moveall', 'pull', 'pullall', 'lock', 'unlock',
-        'private', 'unprivate',
-        'allow', 'unallow', 'list', 'guard', 'unguard'
+        'kick',
+        'kickall',
+        'mute',
+        'unmute',
+        'muteall',
+        'unmuteall',
+        'deafen',
+        'undeafen',
+        'deafenall',
+        'undeafenall',
+        'move',
+        'moveall',
+        'pull',
+        'pullall',
+        'lock',
+        'unlock',
+        'private',
+        'unprivate',
+        'allow',
+        'unallow',
+        'list',
+        'guard',
+        'unguard'
     ],
 
     async execute(message, args, client, prefix) {
-        if (!args.length) return this.sendHelpMenu(message, client, prefix);
+        if (!args.length) {
+            return this.sendHelpMenu(message, client, prefix);
+        }
 
         const subcommand = args[0].toLowerCase();
 
-        return await this.handleVoice(
+        return this.handleVoice(
             message,
             subcommand,
             args.slice(1),
@@ -45,19 +65,25 @@ module.exports = {
 
     async handleVoice(context, subcommand, options, client, prefix) {
         const guild = context.guild;
+
+        if (!guild) return;
+
         const member = context.member;
         const user = context.author || context.user;
 
-        const isOwner = client.owners?.includes(user.id);
-
-        const voiceChannel = member.voice.channel;
+        if (!member || !user) return;
 
         /*
         ==========================================
         VC GUARD MEMORY
         ==========================================
-        client.vcGuardChannels = Set of guarded VC IDs
-        client.vcGuardAllowed = Map<VC ID, Set<User ID>>
+
+        client.vcGuardChannels
+            Set<ChannelID>
+
+        client.vcGuardAllowed
+            Map<ChannelID, Set<UserID>>
+
         ==========================================
         */
 
@@ -68,6 +94,16 @@ module.exports = {
         if (!client.vcGuardAllowed) {
             client.vcGuardAllowed = new Map();
         }
+
+        const voiceChannel = member.voice?.channel;
+
+        const isOwner = client.owners?.includes(user.id);
+
+        /*
+        ==========================================
+        HELPERS
+        ==========================================
+        */
 
         const getTarget = async (arg) => {
             if (!arg) return null;
@@ -82,11 +118,11 @@ module.exports = {
                 target = guild.members.cache.find(m =>
                     m.user.username.toLowerCase() === search ||
                     m.displayName.toLowerCase() === search ||
-                    m.user.tag.toLowerCase() === search
+                    m.user.tag?.toLowerCase() === search
                 );
             }
 
-            return target;
+            return target || null;
         };
 
         const getChannel = async (arg) => {
@@ -108,7 +144,7 @@ module.exports = {
                 );
             }
 
-            return channel;
+            return channel || null;
         };
 
         const success = (msg) => {
@@ -137,27 +173,29 @@ module.exports = {
             });
         };
 
-        const usage = (cmd, use, desc, aliases) => {
+        const usage = (cmd, use, desc, aliases = 'none') => {
             const container = new ContainerBuilder();
 
             container.addTextDisplayComponents(
                 new TextDisplayBuilder()
-                    .setContent(`\`\`\` <> : Required | [] : Optional\`\`\``)
+                    .setContent('```<> : Required | [] : Optional```')
             );
 
             container.addSeparatorComponents(
                 new SeparatorBuilder()
             );
 
-            const content =
+            let content =
                 `> **\`${prefix}voice ${cmd} ${use}\`**\n\n` +
-                `${emoji.arrowright} ${desc}\n` +
-                (
-                    aliases &&
-                    aliases.toLowerCase() !== 'none'
-                        ? `${emoji.arrowright} **Aliases :** \`${aliases}\`\n`
-                        : ''
-                );
+                `${emoji.arrowright} ${desc}\n`;
+
+            if (
+                aliases &&
+                aliases.toLowerCase() !== 'none'
+            ) {
+                content +=
+                    `${emoji.arrowright} **Aliases :** \`${aliases}\`\n`;
+            }
 
             container.addTextDisplayComponents(
                 new TextDisplayBuilder().setContent(content)
@@ -169,7 +207,9 @@ module.exports = {
 
             container.addTextDisplayComponents(
                 new TextDisplayBuilder()
-                    .setContent(`-# Requested by ${user.displayName}`)
+                    .setContent(
+                        `-# Requested by ${user.displayName}`
+                    )
             );
 
             return context.reply({
@@ -177,6 +217,12 @@ module.exports = {
                 flags: MessageFlags.IsComponentsV2
             });
         };
+
+        /*
+        ==========================================
+        SUBCOMMAND ALIASES
+        ==========================================
+        */
 
         const subAliases = {
             k: 'kick',
@@ -216,7 +262,14 @@ module.exports = {
             upr: 'unprivate'
         };
 
-        const realSub = subAliases[subcommand] || subcommand;
+        const realSub =
+            subAliases[subcommand] || subcommand;
+
+        /*
+        ==========================================
+        BOT PERMISSIONS
+        ==========================================
+        */
 
         const botPerms = {
             kick: PermissionFlagsBits.MoveMembers,
@@ -253,12 +306,14 @@ module.exports = {
 
         const requiredPerm = botPerms[realSub];
 
+        const me = guild.members.me;
+
         if (
             requiredPerm &&
-            !guild.members.me.permissions.has(requiredPerm)
+            !me?.permissions.has(requiredPerm)
         ) {
             return error(
-                `I need the required permission to perform this action.`
+                'I need the required permission to perform this action.'
             );
         }
 
@@ -272,45 +327,85 @@ module.exports = {
                 */
 
                 case 'guard': {
+
                     if (
-                        !member.permissions.has(PermissionFlagsBits.MoveMembers) &&
+                        !member.permissions.has(
+                            PermissionFlagsBits.MoveMembers
+                        ) &&
                         !isOwner
                     ) {
-                        return error('You need `Move Members` permission.');
+                        return error(
+                            'You need `Move Members` permission.'
+                        );
                     }
 
                     if (!voiceChannel) {
-                        return error('You must be in a voice channel.');
+                        return error(
+                            'You must be in a voice channel.'
+                        );
                     }
 
-                    client.vcGuardChannels.add(voiceChannel.id);
+                    /*
+                    Enable guard
+                    */
 
-                    if (!client.vcGuardAllowed.has(voiceChannel.id)) {
+                    client.vcGuardChannels.add(
+                        voiceChannel.id
+                    );
+
+                    /*
+                    Create allow list
+                    */
+
+                    if (
+                        !client.vcGuardAllowed.has(
+                            voiceChannel.id
+                        )
+                    ) {
                         client.vcGuardAllowed.set(
                             voiceChannel.id,
                             new Set()
                         );
                     }
 
+                    /*
+                    IMPORTANT:
+                    Anyone not explicitly allowed
+                    will be kicked by voiceStateUpdate.
+                    */
+
                     return success(
-                        `VC Guard enabled for ${voiceChannel}.`
+                        `VC Guard enabled for ${voiceChannel}.\n` +
+                        `Only allowed users can join this VC.`
                     );
                 }
 
                 case 'unguard': {
+
                     if (
-                        !member.permissions.has(PermissionFlagsBits.MoveMembers) &&
+                        !member.permissions.has(
+                            PermissionFlagsBits.MoveMembers
+                        ) &&
                         !isOwner
                     ) {
-                        return error('You need `Move Members` permission.');
+                        return error(
+                            'You need `Move Members` permission.'
+                        );
                     }
 
                     if (!voiceChannel) {
-                        return error('You must be in a voice channel.');
+                        return error(
+                            'You must be in a voice channel.'
+                        );
                     }
 
-                    client.vcGuardChannels.delete(voiceChannel.id);
-                    client.vcGuardAllowed.delete(voiceChannel.id);
+                    client.vcGuardChannels.delete(
+                        voiceChannel.id
+                    );
+
+                    client.vcGuardAllowed.delete(
+                        voiceChannel.id
+                    );
 
                     return success(
                         `VC Guard disabled for ${voiceChannel}.`
@@ -318,18 +413,29 @@ module.exports = {
                 }
 
                 case 'allow': {
+
                     if (
-                        !member.permissions.has(PermissionFlagsBits.MoveMembers) &&
+                        !member.permissions.has(
+                            PermissionFlagsBits.MoveMembers
+                        ) &&
                         !isOwner
                     ) {
-                        return error('You need `Move Members` permission.');
+                        return error(
+                            'You need `Move Members` permission.'
+                        );
                     }
 
                     if (!voiceChannel) {
-                        return error('You must be in a voice channel.');
+                        return error(
+                            'You must be in a voice channel.'
+                        );
                     }
 
-                    if (!client.vcGuardChannels.has(voiceChannel.id)) {
+                    if (
+                        !client.vcGuardChannels.has(
+                            voiceChannel.id
+                        )
+                    ) {
                         return error(
                             `VC Guard is not enabled for ${voiceChannel}.`
                         );
@@ -339,18 +445,25 @@ module.exports = {
                         return usage(
                             'allow',
                             '<user>',
-                            'Allows a user to join the guarded voice channel.',
-                            'none'
+                            'Allows a user to join the guarded voice channel.'
                         );
                     }
 
-                    const target = await getTarget(options[0]);
+                    const target = await getTarget(
+                        options[0]
+                    );
 
                     if (!target) {
-                        return error('User not found.');
+                        return error(
+                            'User not found.'
+                        );
                     }
 
-                    if (!client.vcGuardAllowed.has(voiceChannel.id)) {
+                    if (
+                        !client.vcGuardAllowed.has(
+                            voiceChannel.id
+                        )
+                    ) {
                         client.vcGuardAllowed.set(
                             voiceChannel.id,
                             new Set()
@@ -358,7 +471,9 @@ module.exports = {
                     }
 
                     const allowed =
-                        client.vcGuardAllowed.get(voiceChannel.id);
+                        client.vcGuardAllowed.get(
+                            voiceChannel.id
+                        );
 
                     allowed.add(target.id);
 
@@ -368,36 +483,51 @@ module.exports = {
                 }
 
                 case 'unallow': {
+
                     if (
-                        !member.permissions.has(PermissionFlagsBits.MoveMembers) &&
+                        !member.permissions.has(
+                            PermissionFlagsBits.MoveMembers
+                        ) &&
                         !isOwner
                     ) {
-                        return error('You need `Move Members` permission.');
+                        return error(
+                            'You need `Move Members` permission.'
+                        );
                     }
 
                     if (!voiceChannel) {
-                        return error('You must be in a voice channel.');
+                        return error(
+                            'You must be in a voice channel.'
+                        );
                     }
 
                     if (!options[0]) {
                         return usage(
                             'unallow',
                             '<user>',
-                            'Removes a user from the VC Guard allow list.',
-                            'none'
+                            'Removes a user from the VC Guard allow list.'
                         );
                     }
 
-                    const target = await getTarget(options[0]);
+                    const target = await getTarget(
+                        options[0]
+                    );
 
                     if (!target) {
-                        return error('User not found.');
+                        return error(
+                            'User not found.'
+                        );
                     }
 
                     const allowed =
-                        client.vcGuardAllowed.get(voiceChannel.id);
+                        client.vcGuardAllowed.get(
+                            voiceChannel.id
+                        );
 
-                    if (!allowed || !allowed.has(target.id)) {
+                    if (
+                        !allowed ||
+                        !allowed.has(target.id)
+                    ) {
                         return error(
                             `${target} is not in the allow list.`
                         );
@@ -405,33 +535,65 @@ module.exports = {
 
                     allowed.delete(target.id);
 
+                    /*
+                    If the user is currently inside
+                    the guarded VC, remove them immediately.
+                    */
+
+                    if (
+                        target.voice.channelId ===
+                        voiceChannel.id
+                    ) {
+                        await target.voice
+                            .disconnect(
+                                'VC Guard: User removed from allow list'
+                            )
+                            .catch(() => {});
+                    }
+
                     return success(
                         `${target} has been removed from the allow list.`
                     );
                 }
 
                 case 'list': {
+
                     if (
-                        !member.permissions.has(PermissionFlagsBits.MoveMembers) &&
+                        !member.permissions.has(
+                            PermissionFlagsBits.MoveMembers
+                        ) &&
                         !isOwner
                     ) {
-                        return error('You need `Move Members` permission.');
+                        return error(
+                            'You need `Move Members` permission.'
+                        );
                     }
 
                     if (!voiceChannel) {
-                        return error('You must be in a voice channel.');
+                        return error(
+                            'You must be in a voice channel.'
+                        );
                     }
 
-                    if (!client.vcGuardChannels.has(voiceChannel.id)) {
+                    if (
+                        !client.vcGuardChannels.has(
+                            voiceChannel.id
+                        )
+                    ) {
                         return error(
                             `VC Guard is not enabled for ${voiceChannel}.`
                         );
                     }
 
                     const allowed =
-                        client.vcGuardAllowed.get(voiceChannel.id);
+                        client.vcGuardAllowed.get(
+                            voiceChannel.id
+                        );
 
-                    if (!allowed || allowed.size === 0) {
+                    if (
+                        !allowed ||
+                        allowed.size === 0
+                    ) {
                         return success(
                             `No users are allowed in ${voiceChannel}.`
                         );
@@ -448,366 +610,901 @@ module.exports = {
 
                 /*
                 ==========================================
-                EXISTING COMMANDS
+                KICK
                 ==========================================
                 */
 
                 case 'kick': {
-                    if (!member.permissions.has(PermissionFlagsBits.MoveMembers) && !isOwner)
-                        return error('You need `Move Members` permission.');
 
-                    if (!options[0])
-                        return usage('kick', '<user>', 'Kicks a user from their voice channel.', 'k');
+                    if (
+                        !member.permissions.has(
+                            PermissionFlagsBits.MoveMembers
+                        ) &&
+                        !isOwner
+                    ) {
+                        return error(
+                            'You need `Move Members` permission.'
+                        );
+                    }
 
-                    const target = await getTarget(options[0]);
+                    if (!options[0]) {
+                        return usage(
+                            'kick',
+                            '<user>',
+                            'Kicks a user from their voice channel.',
+                            'k'
+                        );
+                    }
 
-                    if (!target || !target.voice.channel)
-                        return error('User is not in a voice channel.');
+                    const target = await getTarget(
+                        options[0]
+                    );
 
-                    const targetChannel = target.voice.channel;
+                    if (
+                        !target ||
+                        !target.voice.channel
+                    ) {
+                        return error(
+                            'User is not in a voice channel.'
+                        );
+                    }
+
+                    const targetChannel =
+                        target.voice.channel;
 
                     await target.voice.disconnect();
 
-                    return success(`Kicked ${target} from ${targetChannel}.`);
+                    return success(
+                        `Kicked ${target} from ${targetChannel}.`
+                    );
                 }
+
+                /*
+                ==========================================
+                KICK ALL
+                ==========================================
+                */
 
                 case 'kickall': {
-                    if (!member.permissions.has(PermissionFlagsBits.MoveMembers) && !isOwner)
-                        return error('You need `Move Members` permission.');
 
-                    if (!voiceChannel)
-                        return error('You must be in a voice channel.');
+                    if (
+                        !member.permissions.has(
+                            PermissionFlagsBits.MoveMembers
+                        ) &&
+                        !isOwner
+                    ) {
+                        return error(
+                            'You need `Move Members` permission.'
+                        );
+                    }
 
-                    const members = voiceChannel.members.filter(
-                        m => !m.user.bot
+                    if (!voiceChannel) {
+                        return error(
+                            'You must be in a voice channel.'
+                        );
+                    }
+
+                    const members =
+                        voiceChannel.members.filter(
+                            m => !m.user.bot
+                        );
+
+                    for (const [, m] of members) {
+                        await m.voice
+                            .disconnect()
+                            .catch(() => {});
+                    }
+
+                    return success(
+                        `Kicked all users from ${voiceChannel}.`
                     );
-
-                    for (const [, m] of members)
-                        await m.voice.disconnect();
-
-                    return success(`Kicked all users from ${voiceChannel}.`);
                 }
 
+                /*
+                ==========================================
+                MUTE
+                ==========================================
+                */
+
                 case 'mute': {
-                    if (!member.permissions.has(PermissionFlagsBits.MuteMembers) && !isOwner)
-                        return error('You need `Mute Members` permission.');
 
-                    if (!options[0])
-                        return usage('mute', '<user>', 'Mutes a user in their voice channel.', 'm');
+                    if (
+                        !member.permissions.has(
+                            PermissionFlagsBits.MuteMembers
+                        ) &&
+                        !isOwner
+                    ) {
+                        return error(
+                            'You need `Mute Members` permission.'
+                        );
+                    }
 
-                    const target = await getTarget(options[0]);
+                    if (!options[0]) {
+                        return usage(
+                            'mute',
+                            '<user>',
+                            'Mutes a user in their voice channel.',
+                            'm'
+                        );
+                    }
 
-                    if (!target || !target.voice.channel)
-                        return error('User is not in a voice channel.');
+                    const target = await getTarget(
+                        options[0]
+                    );
 
-                    if (target.voice.mute)
-                        return error(`${target} is already muted.`);
+                    if (
+                        !target ||
+                        !target.voice.channel
+                    ) {
+                        return error(
+                            'User is not in a voice channel.'
+                        );
+                    }
+
+                    if (target.voice.mute) {
+                        return error(
+                            `${target} is already muted.`
+                        );
+                    }
 
                     await target.voice.setMute(true);
 
-                    return success(`Muted ${target}.`);
+                    return success(
+                        `Muted ${target}.`
+                    );
                 }
 
                 case 'unmute': {
-                    if (!member.permissions.has(PermissionFlagsBits.MuteMembers) && !isOwner)
-                        return error('You need `Mute Members` permission.');
 
-                    if (!options[0])
-                        return usage('unmute', '<user>', 'Unmutes a user in their voice channel.', 'um');
+                    if (
+                        !member.permissions.has(
+                            PermissionFlagsBits.MuteMembers
+                        ) &&
+                        !isOwner
+                    ) {
+                        return error(
+                            'You need `Mute Members` permission.'
+                        );
+                    }
 
-                    const target = await getTarget(options[0]);
+                    if (!options[0]) {
+                        return usage(
+                            'unmute',
+                            '<user>',
+                            'Unmutes a user in their voice channel.',
+                            'um'
+                        );
+                    }
 
-                    if (!target || !target.voice.channel)
-                        return error('User is not in a voice channel.');
+                    const target = await getTarget(
+                        options[0]
+                    );
 
-                    if (!target.voice.mute)
-                        return error(`${target} is not muted.`);
+                    if (
+                        !target ||
+                        !target.voice.channel
+                    ) {
+                        return error(
+                            'User is not in a voice channel.'
+                        );
+                    }
+
+                    if (!target.voice.mute) {
+                        return error(
+                            `${target} is not muted.`
+                        );
+                    }
 
                     await target.voice.setMute(false);
 
-                    return success(`Unmuted ${target}.`);
+                    return success(
+                        `Unmuted ${target}.`
+                    );
                 }
+
+                /*
+                ==========================================
+                MUTE ALL
+                ==========================================
+                */
 
                 case 'muteall': {
-                    if (!member.permissions.has(PermissionFlagsBits.MuteMembers) && !isOwner)
-                        return error('You need `Mute Members` permission.');
 
-                    if (!voiceChannel)
-                        return error('You must be in a voice channel.');
+                    if (
+                        !member.permissions.has(
+                            PermissionFlagsBits.MuteMembers
+                        ) &&
+                        !isOwner
+                    ) {
+                        return error(
+                            'You need `Mute Members` permission.'
+                        );
+                    }
 
-                    const members = voiceChannel.members.filter(
-                        m => !m.user.bot && !m.voice.mute
+                    if (!voiceChannel) {
+                        return error(
+                            'You must be in a voice channel.'
+                        );
+                    }
+
+                    const members =
+                        voiceChannel.members.filter(
+                            m =>
+                                !m.user.bot &&
+                                !m.voice.mute
+                        );
+
+                    if (members.size === 0) {
+                        return error(
+                            'Everyone is already muted.'
+                        );
+                    }
+
+                    for (const [, m] of members) {
+                        await m.voice
+                            .setMute(true)
+                            .catch(() => {});
+                    }
+
+                    return success(
+                        `Muted everyone in ${voiceChannel}.`
                     );
-
-                    if (members.size === 0)
-                        return error('Everyone is already muted.');
-
-                    for (const [, m] of members)
-                        await m.voice.setMute(true);
-
-                    return success(`Muted everyone.`);
                 }
+
+                /*
+                ==========================================
+                UNMUTE ALL
+                ==========================================
+                */
 
                 case 'unmuteall': {
-                    if (!member.permissions.has(PermissionFlagsBits.MuteMembers) && !isOwner)
-                        return error('You need `Mute Members` permission.');
 
-                    if (!voiceChannel)
-                        return error('You must be in a voice channel.');
+                    if (
+                        !member.permissions.has(
+                            PermissionFlagsBits.MuteMembers
+                        ) &&
+                        !isOwner
+                    ) {
+                        return error(
+                            'You need `Mute Members` permission.'
+                        );
+                    }
 
-                    const members = voiceChannel.members.filter(
-                        m => !m.user.bot && m.voice.mute
+                    if (!voiceChannel) {
+                        return error(
+                            'You must be in a voice channel.'
+                        );
+                    }
+
+                    const members =
+                        voiceChannel.members.filter(
+                            m =>
+                                !m.user.bot &&
+                                m.voice.mute
+                        );
+
+                    if (members.size === 0) {
+                        return error(
+                            'No one is muted.'
+                        );
+                    }
+
+                    for (const [, m] of members) {
+                        await m.voice
+                            .setMute(false)
+                            .catch(() => {});
+                    }
+
+                    return success(
+                        `Unmuted everyone in ${voiceChannel}.`
                     );
-
-                    if (members.size === 0)
-                        return error('No one is muted.');
-
-                    for (const [, m] of members)
-                        await m.voice.setMute(false);
-
-                    return success(`Unmuted everyone.`);
                 }
 
+                /*
+                ==========================================
+                DEAFEN
+                ==========================================
+                */
+
                 case 'deafen': {
-                    if (!member.permissions.has(PermissionFlagsBits.DeafenMembers) && !isOwner)
-                        return error('You need `Deafen Members` permission.');
 
-                    if (!options[0])
-                        return usage('deafen', '<user>', 'Deafens a user in their voice channel.', 'd');
+                    if (
+                        !member.permissions.has(
+                            PermissionFlagsBits.DeafenMembers
+                        ) &&
+                        !isOwner
+                    ) {
+                        return error(
+                            'You need `Deafen Members` permission.'
+                        );
+                    }
 
-                    const target = await getTarget(options[0]);
+                    if (!options[0]) {
+                        return usage(
+                            'deafen',
+                            '<user>',
+                            'Deafens a user in their voice channel.',
+                            'd'
+                        );
+                    }
 
-                    if (!target || !target.voice.channel)
-                        return error('User is not in a voice channel.');
+                    const target = await getTarget(
+                        options[0]
+                    );
 
-                    if (target.voice.deaf)
-                        return error(`${target} is already deafened.`);
+                    if (
+                        !target ||
+                        !target.voice.channel
+                    ) {
+                        return error(
+                            'User is not in a voice channel.'
+                        );
+                    }
+
+                    if (target.voice.deaf) {
+                        return error(
+                            `${target} is already deafened.`
+                        );
+                    }
 
                     await target.voice.setDeaf(true);
 
-                    return success(`Deafened ${target}.`);
+                    return success(
+                        `Deafened ${target}.`
+                    );
                 }
 
                 case 'undeafen': {
-                    if (!member.permissions.has(PermissionFlagsBits.DeafenMembers) && !isOwner)
-                        return error('You need `Deafen Members` permission.');
 
-                    if (!options[0])
-                        return usage('undeafen', '<user>', 'Undeafens a user in their voice channel.', 'ud');
+                    if (
+                        !member.permissions.has(
+                            PermissionFlagsBits.DeafenMembers
+                        ) &&
+                        !isOwner
+                    ) {
+                        return error(
+                            'You need `Deafen Members` permission.'
+                        );
+                    }
 
-                    const target = await getTarget(options[0]);
+                    if (!options[0]) {
+                        return usage(
+                            'undeafen',
+                            '<user>',
+                            'Undeafens a user in their voice channel.',
+                            'ud'
+                        );
+                    }
 
-                    if (!target || !target.voice.channel)
-                        return error('User is not in a voice channel.');
+                    const target = await getTarget(
+                        options[0]
+                    );
 
-                    if (!target.voice.deaf)
-                        return error(`${target} is not deafened.`);
+                    if (
+                        !target ||
+                        !target.voice.channel
+                    ) {
+                        return error(
+                            'User is not in a voice channel.'
+                        );
+                    }
+
+                    if (!target.voice.deaf) {
+                        return error(
+                            `${target} is not deafened.`
+                        );
+                    }
 
                     await target.voice.setDeaf(false);
 
-                    return success(`Undeafened ${target}.`);
+                    return success(
+                        `Undeafened ${target}.`
+                    );
                 }
 
+                /*
+                ==========================================
+                DEAFEN ALL
+                ==========================================
+                */
+
                 case 'deafenall': {
-                    if (!member.permissions.has(PermissionFlagsBits.DeafenMembers) && !isOwner)
-                        return error('You need `Deafen Members` permission.');
 
-                    if (!voiceChannel)
-                        return error('You must be in a voice channel.');
+                    if (
+                        !member.permissions.has(
+                            PermissionFlagsBits.DeafenMembers
+                        ) &&
+                        !isOwner
+                    ) {
+                        return error(
+                            'You need `Deafen Members` permission.'
+                        );
+                    }
 
-                    const members = voiceChannel.members.filter(
-                        m => !m.user.bot && !m.voice.deaf
+                    if (!voiceChannel) {
+                        return error(
+                            'You must be in a voice channel.'
+                        );
+                    }
+
+                    const members =
+                        voiceChannel.members.filter(
+                            m =>
+                                !m.user.bot &&
+                                !m.voice.deaf
+                        );
+
+                    if (members.size === 0) {
+                        return error(
+                            'Everyone is already deafened.'
+                        );
+                    }
+
+                    for (const [, m] of members) {
+                        await m.voice
+                            .setDeaf(true)
+                            .catch(() => {});
+                    }
+
+                    return success(
+                        `Deafened everyone in ${voiceChannel}.`
                     );
-
-                    if (members.size === 0)
-                        return error('Everyone is already deafened.');
-
-                    for (const [, m] of members)
-                        await m.voice.setDeaf(true);
-
-                    return success(`Deafened everyone in ${voiceChannel}.`);
                 }
 
                 case 'undeafenall': {
-                    if (!member.permissions.has(PermissionFlagsBits.DeafenMembers) && !isOwner)
-                        return error('You need `Deafen Members` permission.');
 
-                    if (!voiceChannel)
-                        return error('You must be in a voice channel.');
+                    if (
+                        !member.permissions.has(
+                            PermissionFlagsBits.DeafenMembers
+                        ) &&
+                        !isOwner
+                    ) {
+                        return error(
+                            'You need `Deafen Members` permission.'
+                        );
+                    }
 
-                    const members = voiceChannel.members.filter(
-                        m => !m.user.bot && m.voice.deaf
+                    if (!voiceChannel) {
+                        return error(
+                            'You must be in a voice channel.'
+                        );
+                    }
+
+                    const members =
+                        voiceChannel.members.filter(
+                            m =>
+                                !m.user.bot &&
+                                m.voice.deaf
+                        );
+
+                    if (members.size === 0) {
+                        return error(
+                            'No one is deafened.'
+                        );
+                    }
+
+                    for (const [, m] of members) {
+                        await m.voice
+                            .setDeaf(false)
+                            .catch(() => {});
+                    }
+
+                    return success(
+                        `Undeafened everyone in ${voiceChannel}.`
                     );
-
-                    if (members.size === 0)
-                        return error('No one is deafened.');
-
-                    for (const [, m] of members)
-                        await m.voice.setDeaf(false);
-
-                    return success(`Undeafened everyone.`);
                 }
 
+                /*
+                ==========================================
+                MOVE
+                ==========================================
+                */
+
                 case 'move': {
-                    if (!member.permissions.has(PermissionFlagsBits.MoveMembers) && !isOwner)
-                        return error('You need `Move Members` permission.');
 
-                    if (!options[0])
-                        return usage('move', '<user> <channel>', 'Moves a specific user to another voice channel.', 'mv');
+                    if (
+                        !member.permissions.has(
+                            PermissionFlagsBits.MoveMembers
+                        ) &&
+                        !isOwner
+                    ) {
+                        return error(
+                            'You need `Move Members` permission.'
+                        );
+                    }
 
-                    if (!options[1])
-                        return usage('move', '<user> <channel>', 'Provide the destination channel.', 'mv');
+                    if (!options[0]) {
+                        return usage(
+                            'move',
+                            '<user> <channel>',
+                            'Moves a specific user to another voice channel.',
+                            'mv'
+                        );
+                    }
 
-                    const target = await getTarget(options[0]);
-                    const dest = await getChannel(options[1]);
+                    if (!options[1]) {
+                        return usage(
+                            'move',
+                            '<user> <channel>',
+                            'Provide the destination channel.',
+                            'mv'
+                        );
+                    }
 
-                    if (!target || !target.voice.channel)
-                        return error('User is not in a voice channel.');
+                    const target =
+                        await getTarget(options[0]);
 
-                    if (!dest || dest.type !== ChannelType.GuildVoice)
-                        return error('Provide a valid voice channel.');
+                    const dest =
+                        await getChannel(options[1]);
+
+                    if (
+                        !target ||
+                        !target.voice.channel
+                    ) {
+                        return error(
+                            'User is not in a voice channel.'
+                        );
+                    }
+
+                    if (
+                        !dest ||
+                        (
+                            dest.type !==
+                            ChannelType.GuildVoice &&
+                            dest.type !==
+                            ChannelType.GuildStageVoice
+                        )
+                    ) {
+                        return error(
+                            'Provide a valid voice channel.'
+                        );
+                    }
 
                     await target.voice.setChannel(dest);
 
-                    return success(`Moved ${target} to ${dest}.`);
+                    return success(
+                        `Moved ${target} to ${dest}.`
+                    );
                 }
+
+                /*
+                ==========================================
+                MOVE ALL
+                ==========================================
+                */
 
                 case 'moveall': {
-                    if (!member.permissions.has(PermissionFlagsBits.MoveMembers) && !isOwner)
-                        return error('You need `Move Members` permission.');
 
-                    if (!voiceChannel)
-                        return error('You must be in a voice channel.');
+                    if (
+                        !member.permissions.has(
+                            PermissionFlagsBits.MoveMembers
+                        ) &&
+                        !isOwner
+                    ) {
+                        return error(
+                            'You need `Move Members` permission.'
+                        );
+                    }
 
-                    if (!options[0])
-                        return usage('moveall', '<channel>', 'Moves users from the current channel to another.', 'mva, mvall');
+                    if (!voiceChannel) {
+                        return error(
+                            'You must be in a voice channel.'
+                        );
+                    }
 
-                    const dest = await getChannel(options[0]);
+                    if (!options[0]) {
+                        return usage(
+                            'moveall',
+                            '<channel>',
+                            'Moves users from the current channel to another.',
+                            'mva, mvall'
+                        );
+                    }
 
-                    if (!dest || dest.type !== ChannelType.GuildVoice)
-                        return error('Provide a valid voice channel.');
+                    const dest =
+                        await getChannel(options[0]);
 
-                    const members = voiceChannel.members.filter(
-                        m => !m.user.bot
+                    if (
+                        !dest ||
+                        (
+                            dest.type !==
+                            ChannelType.GuildVoice &&
+                            dest.type !==
+                            ChannelType.GuildStageVoice
+                        )
+                    ) {
+                        return error(
+                            'Provide a valid voice channel.'
+                        );
+                    }
+
+                    const members =
+                        voiceChannel.members.filter(
+                            m => !m.user.bot
+                        );
+
+                    for (const [, m] of members) {
+                        await m.voice
+                            .setChannel(dest)
+                            .catch(() => {});
+                    }
+
+                    return success(
+                        `Moved everyone from ${voiceChannel} to ${dest}.`
                     );
-
-                    for (const [, m] of members)
-                        await m.voice.setChannel(dest);
-
-                    return success(`Moved everyone from ${voiceChannel} to ${dest}.`);
                 }
+
+                /*
+                ==========================================
+                PULL
+                ==========================================
+                */
 
                 case 'pull': {
-                    if (!member.permissions.has(PermissionFlagsBits.MoveMembers) && !isOwner)
-                        return error('You need `Move Members` permission.');
 
-                    if (!voiceChannel)
-                        return error('You must be in a voice channel.');
+                    if (
+                        !member.permissions.has(
+                            PermissionFlagsBits.MoveMembers
+                        ) &&
+                        !isOwner
+                    ) {
+                        return error(
+                            'You need `Move Members` permission.'
+                        );
+                    }
 
-                    if (!options[0])
-                        return usage('pull', '<user>', 'Pulls a user into your current voice channel.', 'p');
+                    if (!voiceChannel) {
+                        return error(
+                            'You must be in a voice channel.'
+                        );
+                    }
 
-                    const target = await getTarget(options[0]);
+                    if (!options[0]) {
+                        return usage(
+                            'pull',
+                            '<user>',
+                            'Pulls a user into your current voice channel.',
+                            'p'
+                        );
+                    }
 
-                    if (!target || !target.voice.channel)
-                        return error('User is not in a voice channel.');
+                    const target =
+                        await getTarget(options[0]);
 
-                    await target.voice.setChannel(voiceChannel);
+                    if (
+                        !target ||
+                        !target.voice.channel
+                    ) {
+                        return error(
+                            'User is not in a voice channel.'
+                        );
+                    }
 
-                    return success(`Pulled ${target} into ${voiceChannel}.`);
-                }
-
-                case 'pullall': {
-                    if (!member.permissions.has(PermissionFlagsBits.MoveMembers) && !isOwner)
-                        return error('You need `Move Members` permission.');
-
-                    if (!voiceChannel)
-                        return error('You must be in a voice channel.');
-
-                    if (!options[0])
-                        return usage('pullall', '<channel>', 'Pulls all users from a specified voice channel into yours.', 'pa, pall');
-
-                    const source = await getChannel(options[0]);
-
-                    if (!source || source.type !== ChannelType.GuildVoice)
-                        return error('Provide a valid voice channel.');
-
-                    const members = source.members.filter(
-                        m => !m.user.bot
+                    await target.voice.setChannel(
+                        voiceChannel
                     );
 
-                    for (const [, m] of members)
-                        await m.voice.setChannel(voiceChannel);
-
-                    return success(`Pulled everyone from ${source} into ${voiceChannel}.`);
+                    return success(
+                        `Pulled ${target} into ${voiceChannel}.`
+                    );
                 }
 
-                case 'lock': {
-                    if (!member.permissions.has(PermissionFlagsBits.ManageChannels) && !isOwner)
-                        return error('You need `Manage Channels` permission.');
+                /*
+                ==========================================
+                PULL ALL
+                ==========================================
+                */
 
-                    if (!voiceChannel)
-                        return error('You must be in a voice channel.');
+                case 'pullall': {
+
+                    if (
+                        !member.permissions.has(
+                            PermissionFlagsBits.MoveMembers
+                        ) &&
+                        !isOwner
+                    ) {
+                        return error(
+                            'You need `Move Members` permission.'
+                        );
+                    }
+
+                    if (!voiceChannel) {
+                        return error(
+                            'You must be in a voice channel.'
+                        );
+                    }
+
+                    if (!options[0]) {
+                        return usage(
+                            'pullall',
+                            '<channel>',
+                            'Pulls all users from a specified voice channel into yours.',
+                            'pa, pall'
+                        );
+                    }
+
+                    const source =
+                        await getChannel(options[0]);
+
+                    if (
+                        !source ||
+                        (
+                            source.type !==
+                            ChannelType.GuildVoice &&
+                            source.type !==
+                            ChannelType.GuildStageVoice
+                        )
+                    ) {
+                        return error(
+                            'Provide a valid voice channel.'
+                        );
+                    }
+
+                    const members =
+                        source.members.filter(
+                            m => !m.user.bot
+                        );
+
+                    for (const [, m] of members) {
+                        await m.voice
+                            .setChannel(voiceChannel)
+                            .catch(() => {});
+                    }
+
+                    return success(
+                        `Pulled everyone from ${source} into ${voiceChannel}.`
+                    );
+                }
+
+                /*
+                ==========================================
+                LOCK
+                ==========================================
+                */
+
+                case 'lock': {
+
+                    if (
+                        !member.permissions.has(
+                            PermissionFlagsBits.ManageChannels
+                        ) &&
+                        !isOwner
+                    ) {
+                        return error(
+                            'You need `Manage Channels` permission.'
+                        );
+                    }
+
+                    if (!voiceChannel) {
+                        return error(
+                            'You must be in a voice channel.'
+                        );
+                    }
 
                     await voiceChannel.permissionOverwrites.edit(
                         guild.roles.everyone,
-                        { Connect: false }
+                        {
+                            Connect: false
+                        }
                     );
 
-                    return success(`Locked ${voiceChannel}.`);
+                    return success(
+                        `Locked ${voiceChannel}.`
+                    );
                 }
 
                 case 'unlock': {
-                    if (!member.permissions.has(PermissionFlagsBits.ManageChannels) && !isOwner)
-                        return error('You need `Manage Channels` permission.');
 
-                    if (!voiceChannel)
-                        return error('You must be in a voice channel.');
+                    if (
+                        !member.permissions.has(
+                            PermissionFlagsBits.ManageChannels
+                        ) &&
+                        !isOwner
+                    ) {
+                        return error(
+                            'You need `Manage Channels` permission.'
+                        );
+                    }
+
+                    if (!voiceChannel) {
+                        return error(
+                            'You must be in a voice channel.'
+                        );
+                    }
 
                     await voiceChannel.permissionOverwrites.edit(
                         guild.roles.everyone,
-                        { Connect: true }
+                        {
+                            Connect: null
+                        }
                     );
 
-                    return success(`Unlocked ${voiceChannel}.`);
+                    return success(
+                        `Unlocked ${voiceChannel}.`
+                    );
                 }
 
-                case 'private': {
-                    if (!member.permissions.has(PermissionFlagsBits.ManageChannels) && !isOwner)
-                        return error('You need `Manage Channels` permission.');
+                /*
+                ==========================================
+                PRIVATE
+                ==========================================
+                */
 
-                    if (!voiceChannel)
-                        return error('You must be in a voice channel.');
+                case 'private': {
+
+                    if (
+                        !member.permissions.has(
+                            PermissionFlagsBits.ManageChannels
+                        ) &&
+                        !isOwner
+                    ) {
+                        return error(
+                            'You need `Manage Channels` permission.'
+                        );
+                    }
+
+                    if (!voiceChannel) {
+                        return error(
+                            'You must be in a voice channel.'
+                        );
+                    }
 
                     await voiceChannel.permissionOverwrites.edit(
                         guild.roles.everyone,
-                        { ViewChannel: false }
+                        {
+                            ViewChannel: false
+                        }
                     );
 
-                    return success(`Made ${voiceChannel} private.`);
+                    return success(
+                        `Made ${voiceChannel} private.`
+                    );
                 }
 
                 case 'unprivate': {
-                    if (!member.permissions.has(PermissionFlagsBits.ManageChannels) && !isOwner)
-                        return error('You need `Manage Channels` permission.');
 
-                    if (!voiceChannel)
-                        return error('You must be in a voice channel.');
+                    if (
+                        !member.permissions.has(
+                            PermissionFlagsBits.ManageChannels
+                        ) &&
+                        !isOwner
+                    ) {
+                        return error(
+                            'You need `Manage Channels` permission.'
+                        );
+                    }
+
+                    if (!voiceChannel) {
+                        return error(
+                            'You must be in a voice channel.'
+                        );
+                    }
 
                     await voiceChannel.permissionOverwrites.edit(
                         guild.roles.everyone,
-                        { ViewChannel: true }
+                        {
+                            ViewChannel: null
+                        }
                     );
 
-                    return success(`Made ${voiceChannel} public.`);
+                    return success(
+                        `Made ${voiceChannel} public.`
+                    );
                 }
 
                 default:
-                    return this.sendHelpMenu(context, client, prefix);
+                    return this.sendHelpMenu(
+                        context,
+                        client,
+                        prefix
+                    );
             }
 
         } catch (err) {
-            console.error(err);
+            console.error(
+                '[VOICE COMMAND ERROR]',
+                err
+            );
 
             return error(
                 `An error occurred: ${err.message}`
@@ -815,75 +1512,140 @@ module.exports = {
         }
     },
 
+    /*
+    ==========================================
+    HELP MENU
+    ==========================================
+    */
+
     async sendHelpMenu(message, client, prefix) {
-        const usedPrefix = prefix || client.prefix;
+
+        const usedPrefix =
+            prefix || client.prefix;
 
         const pages = [
             {
                 items: [
-                    { cmd: 'voice guard', desc: 'Enables VC Guard for your current voice channel.' },
-                    { cmd: 'voice allow', desc: 'Allows a user to join the guarded voice channel.' },
-                    { cmd: 'voice unallow', desc: 'Removes a user from the VC Guard allow list.' },
-                    { cmd: 'voice list', desc: 'Shows users allowed in the guarded voice channel.' },
-                    { cmd: 'voice unguard', desc: 'Disables VC Guard for your current voice channel.' }
+                    {
+                        cmd: 'voice guard',
+                        desc: 'Enables VC Guard. Only allowed users can join.'
+                    },
+                    {
+                        cmd: 'voice allow',
+                        desc: 'Allows a user to join the guarded VC.'
+                    },
+                    {
+                        cmd: 'voice unallow',
+                        desc: 'Removes a user from the VC allow list.'
+                    },
+                    {
+                        cmd: 'voice list',
+                        desc: 'Shows users allowed in the guarded VC.'
+                    },
+                    {
+                        cmd: 'voice unguard',
+                        desc: 'Disables VC Guard.'
+                    }
                 ]
             },
             {
                 items: [
-                    { cmd: 'voice kick', desc: 'Kicks a user from their voice channel.' },
-                    { cmd: 'voice kickall', desc: 'Kicks all users from the current voice channel.' },
-                    { cmd: 'voice lock', desc: 'Locks the current voice channel.' },
-                    { cmd: 'voice unlock', desc: 'Unlocks the current voice channel.' },
-                    { cmd: 'voice move', desc: 'Moves a user to another voice channel.' },
-                    { cmd: 'voice moveall', desc: 'Moves users to another voice channel.' }
+                    {
+                        cmd: 'voice kick',
+                        desc: 'Kicks a user from their voice channel.'
+                    },
+                    {
+                        cmd: 'voice kickall',
+                        desc: 'Kicks all users from the current VC.'
+                    },
+                    {
+                        cmd: 'voice lock',
+                        desc: 'Locks the current voice channel.'
+                    },
+                    {
+                        cmd: 'voice unlock',
+                        desc: 'Unlocks the current voice channel.'
+                    },
+                    {
+                        cmd: 'voice move',
+                        desc: 'Moves a user to another voice channel.'
+                    },
+                    {
+                        cmd: 'voice moveall',
+                        desc: 'Moves users to another voice channel.'
+                    }
                 ]
             },
             {
                 items: [
-                    { cmd: 'voice mute', desc: 'Mutes a user.' },
-                    { cmd: 'voice muteall', desc: 'Mutes all users.' },
-                    { cmd: 'voice unmute', desc: 'Unmutes a user.' },
-                    { cmd: 'voice unmuteall', desc: 'Unmutes all users.' },
-                    { cmd: 'voice deafen', desc: 'Deafens a user.' },
-                    { cmd: 'voice undeafen', desc: 'Undeafens a user.' }
+                    {
+                        cmd: 'voice mute',
+                        desc: 'Mutes a user.'
+                    },
+                    {
+                        cmd: 'voice muteall',
+                        desc: 'Mutes all users.'
+                    },
+                    {
+                        cmd: 'voice unmute',
+                        desc: 'Unmutes a user.'
+                    },
+                    {
+                        cmd: 'voice unmuteall',
+                        desc: 'Unmutes all users.'
+                    },
+                    {
+                        cmd: 'voice deafen',
+                        desc: 'Deafens a user.'
+                    },
+                    {
+                        cmd: 'voice undeafen',
+                        desc: 'Undeafens a user.'
+                    }
                 ]
             }
         ];
 
         let currentPage = 0;
 
-        const author = message.author || message.user;
+        const author =
+            message.author || message.user;
 
-        const totalCommands = pages.reduce(
-            (acc, p) => acc + p.items.length,
-            0
-        );
+        const totalCommands =
+            pages.reduce(
+                (acc, p) => acc + p.items.length,
+                0
+            );
 
         const createContainer = (pageIdx) => {
+
             const page = pages[pageIdx];
 
-            const container = new ContainerBuilder();
+            const container =
+                new ContainerBuilder();
 
-            const header = new TextDisplayBuilder()
-                .setContent(
-                    `### ${emoji.info} Voice Command [${totalCommands}]`
-                );
-
-            container.addTextDisplayComponents(header);
+            container.addTextDisplayComponents(
+                new TextDisplayBuilder()
+                    .setContent(
+                        `### ${emoji.info} Voice Command [${totalCommands}]`
+                    )
+            );
 
             container.addSeparatorComponents(
                 new SeparatorBuilder()
             );
 
-            const content = page.items
-                .map(
-                    item =>
-                        `> **\`${usedPrefix}${item.cmd}\`**\n╰ ${item.desc}`
-                )
-                .join('\n\n');
+            const content =
+                page.items
+                    .map(
+                        item =>
+                            `> **\`${usedPrefix}${item.cmd}\`**\n╰ ${item.desc}`
+                    )
+                    .join('\n\n');
 
             container.addTextDisplayComponents(
-                new TextDisplayBuilder().setContent(content)
+                new TextDisplayBuilder()
+                    .setContent(content)
             );
 
             container.addSeparatorComponents(
@@ -901,90 +1663,140 @@ module.exports = {
         };
 
         const getButtons = () => {
-            return new ActionRowBuilder().addComponents(
-                new ButtonBuilder()
-                    .setCustomId('home')
-                    .setLabel('Home')
-                    .setStyle(ButtonStyle.Secondary),
 
-                new ButtonBuilder()
-                    .setCustomId('prev')
-                    .setLabel('Previous')
-                    .setStyle(ButtonStyle.Secondary),
+            return new ActionRowBuilder()
+                .addComponents(
 
-                new ButtonBuilder()
-                    .setCustomId('next')
-                    .setLabel('Next')
-                    .setStyle(ButtonStyle.Secondary),
+                    new ButtonBuilder()
+                        .setCustomId('home')
+                        .setLabel('Home')
+                        .setStyle(
+                            ButtonStyle.Secondary
+                        ),
 
-                new ButtonBuilder()
-                    .setCustomId('close')
-                    .setLabel('Close')
-                    .setStyle(ButtonStyle.Danger)
-            );
+                    new ButtonBuilder()
+                        .setCustomId('prev')
+                        .setLabel('Previous')
+                        .setStyle(
+                            ButtonStyle.Secondary
+                        ),
+
+                    new ButtonBuilder()
+                        .setCustomId('next')
+                        .setLabel('Next')
+                        .setStyle(
+                            ButtonStyle.Secondary
+                        ),
+
+                    new ButtonBuilder()
+                        .setCustomId('close')
+                        .setLabel('Close')
+                        .setStyle(
+                            ButtonStyle.Danger
+                        )
+                );
         };
 
-        const buttonRow = getButtons();
-
-        const components = [
-            createContainer(currentPage)
-        ];
-
-        if (pages.length > 1)
-            components.push(buttonRow);
-
-        const msg = await message.reply({
-            content: '',
-            components,
-            flags: MessageFlags.IsComponentsV2,
-            allowedMentions: { parse: [] }
-        });
-
-        const collector = msg.createMessageComponentCollector({
-            filter: i => i.user.id === author.id,
-            time: 60000,
-            componentType: ComponentType.Button
-        });
-
-        collector.on('collect', async interaction => {
-
-            if (interaction.customId === 'close') {
-                return interaction.message.delete().catch(() => {});
-            }
-
-            if (interaction.customId === 'home')
-                currentPage = 0;
-
-            if (interaction.customId === 'prev')
-                currentPage =
-                    (currentPage - 1 + pages.length) % pages.length;
-
-            if (interaction.customId === 'next')
-                currentPage =
-                    (currentPage + 1) % pages.length;
-
-            const updatedComponents = [
-                createContainer(currentPage)
-            ];
-
-            if (pages.length > 1)
-                updatedComponents.push(buttonRow);
-
-            await interaction.update({
-                components: updatedComponents,
-                flags: MessageFlags.IsComponentsV2,
-                allowedMentions: { parse: [] }
-            });
-        });
-
-        collector.on('end', () => {
-            msg.edit({
+        const msg =
+            await message.reply({
+                content: '',
                 components: [
-                    createContainer(currentPage)
+                    createContainer(currentPage),
+                    getButtons()
                 ],
-                flags: MessageFlags.IsComponentsV2,
-                allowedMentions: { parse: [] }
-            }).catch(() => {});
-        });
+                flags:
+                    MessageFlags.IsComponentsV2,
+                allowedMentions: {
+                    parse: []
+                }
+            });
+
+        const collector =
+            msg.createMessageComponentCollector({
+                filter: i =>
+                    i.user.id === author.id,
+                time: 60000,
+                componentType:
+                    ComponentType.Button
+            });
+
+        collector.on(
+            'collect',
+            async interaction => {
+
+                if (
+                    interaction.customId ===
+                    'close'
+                ) {
+                    return interaction.message
+                        .delete()
+                        .catch(() => {});
+                }
+
+                if (
+                    interaction.customId ===
+                    'home'
+                ) {
+                    currentPage = 0;
+                }
+
+                if (
+                    interaction.customId ===
+                    'prev'
+                ) {
+                    currentPage =
+                        (
+                            currentPage -
+                            1 +
+                            pages.length
+                        ) %
+                        pages.length;
+                }
+
+                if (
+                    interaction.customId ===
+                    'next'
+                ) {
+                    currentPage =
+                        (
+                            currentPage + 1
+                        ) %
+                        pages.length;
+                }
+
+                await interaction.update({
+                    components: [
+                        createContainer(
+                            currentPage
+                        ),
+                        getButtons()
+                    ],
+                    flags:
+                        MessageFlags.IsComponentsV2,
+                    allowedMentions: {
+                        parse: []
+                    }
+                });
+            }
+        );
+
+        collector.on(
+            'end',
+            () => {
+
+                msg.edit({
+                    components: [
+                        createContainer(
+                            currentPage
+                        )
+                    ],
+                    flags:
+                        MessageFlags.IsComponentsV2,
+                    allowedMentions: {
+                        parse: []
+                    }
+                }).catch(() => {});
+            }
+        );
     }
 };
