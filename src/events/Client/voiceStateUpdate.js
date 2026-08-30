@@ -2,16 +2,14 @@ const { PermissionsBitField } = require("discord.js");
 
 module.exports = {
     name: "voiceStateUpdate",
+    once: false,
 
-    async execute(oldState, newState, client) {
+    async run(client, oldState, newState) {
         try {
-            if (!client.db?.vcguard) return;
-
             const guild = newState.guild || oldState.guild;
             if (!guild) return;
 
-            const guard = client.db.vcguard.get(guild.id);
-
+            const guard = client.db?.vcguard?.get(guild.id);
             if (!guard || !guard.enabled) return;
 
             const member = newState.member;
@@ -25,25 +23,19 @@ module.exports = {
                 return;
             }
 
+            // User joined/moved into a VC
+            if (!newState.channelId) return;
+
             // Allowed users
             if (guard.allowedUsers?.includes(member.id)) {
                 return;
             }
 
-            // Only when user joins/moves to a VC
-            if (!newState.channelId) return;
-
-            // Bot needs Move Members
+            // Bot needs Move Members permission
             const me = guild.members.me;
 
-            if (
-                !me?.permissions.has(
-                    PermissionsBitField.Flags.MoveMembers
-                )
-            ) {
-                console.log(
-                    "[VC Guard] Missing Move Members permission."
-                );
+            if (!me?.permissions.has(PermissionsBitField.Flags.MoveMembers)) {
+                console.log("[VC Guard] Missing Move Members permission.");
                 return;
             }
 
@@ -52,11 +44,8 @@ module.exports = {
                 .disconnect("VC Guard: user not allowed")
                 .catch(() => {});
 
-        } catch (error) {
-            console.error(
-                "[VC GUARD ERROR]",
-                error
-            );
+        } catch (err) {
+            console.error("[VC Guard Error]", err);
         }
     }
 };
