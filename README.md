@@ -2,7 +2,7 @@
 
 > **Originally developed by [](https://discord.com/users/1519443744011714632)**
 
-> ** Development:** [discord.gg/skyline](https://discord.gg/skyl1ne)
+> ** Development:** [discord.gg/skyline](https://discord.gg/skylinee)
 
 ---
 
