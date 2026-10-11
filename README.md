@@ -1,6 +1,5 @@
 # ZEBU — Discord Music & Utility Bot
 
-> **Originally developed by [](https://discord.com/users/1519443744011714632)**
 
 > ** Development:** [discord.gg/skyline](https://discord.gg/skylinee)
 
@@ -8,13 +7,14 @@
 
 ## Overview
 
-Groove is a feature-rich Discord bot built with discord.js v14, centered around high-quality music playback via Lavalink (Kazagumo/Shoukaku). It also includes moderation, automod, invite tracking, giveaways, and server utilities. Uses hybrid sharding for scalability and SQLite for persistent storage.
+Music Riya
+is a feature-rich Discord bot built with discord.js v14, centered around high-quality music playback via Lavalink (Kazagumo/Shoukaku). It also includes moderation, automod, invite tracking, giveaways, and server utilities. Uses hybrid sharding for scalability and SQLite for persistent storage.
 
 ---
 
 ## Features
 
-- **Music** — Play from YouTube Music, Spotify, Apple Music, Deezer, and more. Full queue controls, filters, autoplay, lyrics, liked songs, 24/7 mode, now-playing cards
+- **Music Riya** — Play from YouTube Music, Spotify, Apple Music, Deezer, and more. Full queue controls, filters, autoplay, lyrics, liked songs, 24/7 mode, now-playing cards
 - **Moderation** — Ban, kick, mute, purge, lock/hide channels, nuke, snipe, role management
 - **Automod** — Anti-link, anti-spam, anti-mention, anti-caps, anti-emoji, anti-NSFW with heat-based punishments
 - **Invite Tracking** — Full invite tracking, leaderboard, fake/rejoin detection, invite logs
