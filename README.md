@@ -195,15 +195,3 @@ npm start
 npm run dev
 ```
 
----
-
-## Credits
-
-| | |
-|---|---|
-| Original Developer | [not.blaxe](https://discord.com/users/689047015665172569) |
-| Open Sourced By | [AeroX Development](https://discord.gg/aerox) |
-
-This project was originally private and was leaked by a friend of the developer. AeroX Development has open-sourced it with the full consent of not.blaxe.
-
-**Join us:** [discord.gg/aerox](https://discord.gg/aerox)
